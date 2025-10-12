@@ -1,0 +1,11 @@
+name = "oneclickanalyzesbot"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+# Environment variables (for local development)
+[vars]
+# These will be overridden by secrets in production
+
+# Add your secrets here for deployment
+# Run: wrangler secret put TELEGRAM_BOT_TOKEN
+# Run: wrangler secret put DEEPSEEK_API_KEY
