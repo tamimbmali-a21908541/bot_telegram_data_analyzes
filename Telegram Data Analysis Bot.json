@@ -1,0 +1,323 @@
+{
+  "name": "Telegram Data Analysis Bot - Complete",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1072,
+        -96
+      ],
+      "id": "f590a41e-a1bc-4d9c-b827-0e1600c938f6",
+      "name": "Telegram Trigger",
+      "webhookId": "8e29a127-a205-41d6-bb2f-85f3b6d5874a",
+      "credentials": {
+        "telegramApi": {
+          "id": "Till4dEjyqRCDS2z",
+          "name": "Telegram account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.message.document !== undefined }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "7ad8edda-77d4-46e2-b38d-fb2cb0218423",
+      "name": "Has File?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -928,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot8347142212:AAGN_lTlBiT0PewaLoAJ23NG2b2Y2rWxNyI/getFile?file_id={{ $json.message.document.file_id }}",
+        "options": {}
+      },
+      "id": "12252127-de54-41c8-894f-ade29d13218b",
+      "name": "Get File Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -736,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/file/bot8347142212:AAGN_lTlBiT0PewaLoAJ23NG2b2Y2rWxNyI/{{ $json.result.file_path }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "c93eb953-e7b1-48da-bc8e-f1521cabacf3",
+      "name": "Download File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -528,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "3d26333a-a1df-4ce5-8f08-302957eb872e",
+      "name": "Parse Spreadsheet",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst chatId = $('Telegram Trigger').first().json.message.chat.id;\n\nlet dataText = 'DATA ANALYSIS\\n\\n';\nconst sheets = {};\n\nitems.forEach(item => {\n  const sheet = item.json._sheet || 'Sheet1';\n  if (!sheets[sheet]) sheets[sheet] = [];\n  sheets[sheet].push(item.json);\n});\n\nObject.keys(sheets).forEach(sheetName => {\n  const data = sheets[sheetName];\n  dataText += `--- ${sheetName} (${data.length} rows) ---\\n`;\n  \n  if (data.length > 0) {\n    const headers = Object.keys(data[0]);\n    dataText += `Columns: ${headers.join(', ')}\\n\\n`;\n    \n    const sample = Math.min(data.length, 30);\n    dataText += `Sample (${sample} rows):\\n`;\n    for (let i = 0; i < sample; i++) {\n      dataText += JSON.stringify(data[i]) + '\\n';\n    }\n    \n    dataText += '\\nSTATS:\\n';\n    headers.forEach(h => {\n      const vals = data.map(r => r[h]).filter(v => !isNaN(v) && v !== null && v !== '');\n      if (vals.length > 0) {\n        const nums = vals.map(Number);\n        const sum = nums.reduce((a,b) => a+b, 0);\n        const avg = sum / nums.length;\n        const max = Math.max(...nums);\n        const min = Math.min(...nums);\n        dataText += `  ${h}: Min=${min}, Max=${max}, Avg=${avg.toFixed(2)}\\n`;\n      }\n    });\n  }\n  dataText += '\\n';\n});\n\nreturn [{ json: { chatId, dataText, totalRows: items.length }}];"
+      },
+      "id": "9a3ee334-065a-457d-b7d1-bf927c77955a",
+      "name": "Prepare Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.deepseek.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer sk-3a3738127d9b4b15808aa8adcc104662"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "deepseek-chat"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [{\"role\": \"system\", \"content\": \"You are a professional data analyst. Analyze data and provide insights in both English and Arabic. Include: 1) Executive Summary (ملخص تنفيذي), 2) Key Findings (النتائج الرئيسية), 3) Trends (الاتجاهات), 4) Recommendations (التوصيات). Use clear structure.\"}, {\"role\": \"user\", \"content\": $json.dataText + \"\\n\\nAnalyze this data completely.\"}] }}"
+            },
+            {
+              "name": "temperature",
+              "value": "={{ 0.7 }}"
+            },
+            {
+              "name": "max_tokens",
+              "value": "={{ 2000 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "719bda0d-374d-496f-98e2-4fed0faddd6d",
+      "name": "DeepSeek Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        64,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst analysis = response.choices[0].message.content;\nconst chatId = $input.first().json.chatId || $('Prepare Data').first().json.chatId;\n\nlet message = `📊 DATA ANALYSIS REPORT\\n\\n${analysis}\\n\\n---\\n💬 You can ask me follow-up questions about this data!\\n📅 ${new Date().toLocaleString()}`;\n\n// Telegram message limit is 4096 characters\nif (message.length > 4096) {\n  message = message.substring(0, 4050) + '\\n\\n... (truncated)';\n}\n\nreturn [{ json: { chatId, message }}];"
+      },
+      "id": "9a5559cf-220c-447c-bdd8-a19296bf777d",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        272,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "73a98106-a8c8-485a-b6eb-869312636fda",
+      "name": "Send Analysis",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        464,
+        240
+      ],
+      "webhookId": "abbbd307-801c-4dcd-8511-527ccfc857b4",
+      "credentials": {
+        "telegramApi": {
+          "id": "Till4dEjyqRCDS2z",
+          "name": "Telegram account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "Please send an Excel (.xlsx, .xls) or CSV file for analysis.",
+        "additionalFields": {}
+      },
+      "id": "d56f0ac7-48ac-43fb-8de9-dfb8be94deb4",
+      "name": "No File Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        448
+      ],
+      "webhookId": "2976b0f1-9562-48ea-9e04-e17e7175eac4",
+      "credentials": {
+        "telegramApi": {
+          "id": "Till4dEjyqRCDS2z",
+          "name": "Telegram account 4"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Has File?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has File?": {
+      "main": [
+        [
+          {
+            "node": "Get File Info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No File Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get File Info": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Parse Spreadsheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Spreadsheet": {
+      "main": [
+        [
+          {
+            "node": "Prepare Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Data": {
+      "main": [
+        [
+          {
+            "node": "DeepSeek Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Analysis": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Send Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "eabb0d8c-fc98-48f2-82e5-49886d826da2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "797b82332ff35927ad7d5a73c26e1ca6750a67691929f6ef5382afee34a4ced1"
+  },
+  "id": "viuqFsQ6FZ6vydbt",
+  "tags": []
+}
