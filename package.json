@@ -1,0 +1,10 @@
+{
+  "name": "telegram-data-analysis-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for data analysis with Excel and CSV support",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.1/xlsx-0.20.1.tgz"
+  }
+}

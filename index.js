@@ -24,7 +24,7 @@ async function handleTelegramUpdate(request, env) {
     } else if (update.message) {
       await sendTelegramMessage(
         update.message.chat.id,
-        '📊 Data Analysis Bot\n\nSend me a CSV file and I will generate a comprehensive PDF report with:\n\n✓ Complete data analysis\n✓ Statistical tables\n✓ Pivot tables\n✓ AI-powered insights\n✓ Professional formatting',
+        '📊 Data Analysis Bot\n\nSend me an Excel (.xlsx, .xls) or CSV file and I will generate a comprehensive report with:\n\n✓ Complete data analysis\n✓ Statistical tables\n✓ Pivot tables\n✓ AI-powered insights\n✓ Professional HTML report\n\n💾 Supported formats: .xlsx, .xls, .csv',
         env.TELEGRAM_BOT_TOKEN
       );
     }
@@ -75,7 +75,7 @@ async function processDocument(message, env) {
     console.error('Error processing document:', error);
     await sendTelegramMessage(
       chatId,
-      `❌ Error: ${error.message}\n\nPlease send a valid CSV file.`,
+      `❌ Error: ${error.message}\n\nPlease send a valid Excel (.xlsx, .xls) or CSV file.`,
       env.TELEGRAM_BOT_TOKEN
     );
   }
@@ -84,10 +84,28 @@ async function processDocument(message, env) {
 async function parseSpreadsheet(arrayBuffer, filename) {
   const lowerFilename = filename.toLowerCase();
 
+  // Handle Excel files
   if (lowerFilename.endsWith('.xlsx') || lowerFilename.endsWith('.xls')) {
-    throw new Error('Excel files not supported. Please export to CSV first.');
+    try {
+      // Use SheetJS library from CDN
+      const { read, utils } = await import('https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs');
+
+      const workbook = read(new Uint8Array(arrayBuffer), { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+
+      // Convert to JSON
+      const data = utils.sheet_to_json(worksheet);
+
+      if (data.length === 0) throw new Error('Excel file is empty');
+
+      return data;
+    } catch (error) {
+      throw new Error(`Excel parsing failed: ${error.message}`);
+    }
   }
 
+  // Handle CSV files
   const text = new TextDecoder().decode(arrayBuffer);
   const lines = text.split('\n').filter(line => line.trim());
 
