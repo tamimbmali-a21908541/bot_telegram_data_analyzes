@@ -46,7 +46,11 @@ async function processDocument(message, env) {
 
   try {
     // Send processing message
-    await sendTelegramMessage(chatId, '📊 Processing your file...', env.TELEGRAM_BOT_TOKEN);
+    await sendTelegramMessage(
+      chatId,
+      '📊 Analyzing your file...\n⏳ Please wait, this may take a moment.\n\nI will:\n✓ Parse your data\n✓ Calculate statistics\n✓ Generate AI insights',
+      env.TELEGRAM_BOT_TOKEN
+    );
 
     // Get file info from Telegram
     const fileInfoResponse = await fetch(
@@ -93,7 +97,19 @@ async function processDocument(message, env) {
 }
 
 async function parseSpreadsheet(arrayBuffer, filename) {
-  // Simple CSV parser (for Excel, you'd need a library like xlsx)
+  const lowerFilename = filename.toLowerCase();
+
+  // Check if it's an Excel file
+  if (lowerFilename.endsWith('.xlsx') || lowerFilename.endsWith('.xls')) {
+    // For Excel files, we'll use a CDN-hosted xlsx library
+    const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs');
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    return XLSX.utils.sheet_to_json(worksheet);
+  }
+
+  // CSV parser
   const text = new TextDecoder().decode(arrayBuffer);
   const lines = text.split('\n').filter(line => line.trim());
 
