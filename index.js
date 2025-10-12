@@ -28,7 +28,7 @@ async function handleTelegramUpdate(request, env) {
       // No file attached
       await sendTelegramMessage(
         update.message.chat.id,
-        'Please send an Excel (.xlsx, .xls) or CSV file for analysis.',
+        'Please send a CSV file for analysis.\n\nNote: Excel files (.xlsx, .xls) are not yet supported - please export to CSV first.',
         env.TELEGRAM_BOT_TOKEN
       );
     }
@@ -90,7 +90,7 @@ async function processDocument(message, env) {
     console.error('Error processing document:', error);
     await sendTelegramMessage(
       chatId,
-      '❌ Sorry, there was an error processing your file. Please make sure it\'s a valid CSV or Excel file.',
+      `❌ Sorry, there was an error processing your file.\n\n${error.message}\n\nPlease send a valid CSV file.`,
       env.TELEGRAM_BOT_TOKEN
     );
   }
@@ -99,30 +99,48 @@ async function processDocument(message, env) {
 async function parseSpreadsheet(arrayBuffer, filename) {
   const lowerFilename = filename.toLowerCase();
 
-  // Check if it's an Excel file
+  // Check if it's an Excel file - currently not supported in Workers
   if (lowerFilename.endsWith('.xlsx') || lowerFilename.endsWith('.xls')) {
-    // For Excel files, we'll use a CDN-hosted xlsx library
-    const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs');
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
-    return XLSX.utils.sheet_to_json(worksheet);
+    throw new Error('Excel files are not yet supported. Please export your file as CSV and try again.');
   }
 
-  // CSV parser
+  // CSV parser with better handling
   const text = new TextDecoder().decode(arrayBuffer);
   const lines = text.split('\n').filter(line => line.trim());
 
-  if (lines.length === 0) return [];
+  if (lines.length === 0) {
+    throw new Error('File appears to be empty');
+  }
 
-  const headers = lines[0].split(',').map(h => h.trim());
+  // Split by comma, but handle quoted values
+  const parseCSVLine = (line) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const headers = parseCSVLine(lines[0]);
   const data = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',');
+    const values = parseCSVLine(lines[i]);
     const row = {};
     headers.forEach((header, index) => {
-      row[header] = values[index]?.trim() || '';
+      row[header] = values[index] || '';
     });
     data.push(row);
   }
