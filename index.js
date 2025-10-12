@@ -1,10 +1,10 @@
 // Telegram Data Analysis Bot - Enhanced with PDF Generation
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (request.method === 'POST' && url.pathname === '/webhook') {
-      return handleTelegramUpdate(request, env);
+      return handleTelegramUpdate(request, env, ctx);
     }
 
     if (url.pathname === '/') {
@@ -15,12 +15,16 @@ export default {
   }
 };
 
-async function handleTelegramUpdate(request, env) {
+async function handleTelegramUpdate(request, env, ctx) {
   try {
     const update = await request.json();
 
     if (update.message && update.message.document) {
-      await processDocument(update.message, env);
+      // Process in background - don't await
+      ctx.waitUntil(processDocument(update.message, env));
+
+      // Respond immediately to Telegram
+      return new Response('OK', { status: 200 });
     } else if (update.message) {
       await sendTelegramMessage(
         update.message.chat.id,
