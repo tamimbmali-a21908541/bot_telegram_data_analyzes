@@ -11,3 +11,7 @@ EVOLUTION_COMPARISON.md
 
 # Deployment scripts with secrets (if any)
 deploy.sh
+
+# Backup files
+index-backup-*.js
+*-backup-*.js
