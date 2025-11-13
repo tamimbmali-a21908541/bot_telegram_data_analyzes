@@ -1,3 +1,13 @@
 .dev.vars
 node_modules/
 .wrangler/
+
+# Temporary analysis documents
+ANALYSIS_*.md
+ANALYSIS_*.txt
+ARCHITECTURE_*.txt
+CODE_SNIPPETS.md
+EVOLUTION_COMPARISON.md
+
+# Deployment scripts with secrets (if any)
+deploy.sh
