@@ -11,7 +11,7 @@ fi
 
 # Set secrets
 echo "Setting up secrets..."
-echo "8347142212:AAGN_lTlBiT0PewaLoAJ23NG2b2Y2rWxNyI" | npx wrangler secret put TELEGRAM_BOT_TOKEN
+echo "8347142212:AAE0eB40ECYhH-ISYMnAsShdNbE5DZBiSBI" | npx wrangler secret put TELEGRAM_BOT_TOKEN
 echo "sk-3a3738127d9b4b15808aa8adcc104662" | npx wrangler secret put DEEPSEEK_API_KEY
 
 # Deploy
@@ -21,7 +21,7 @@ npx wrangler deploy
 # Set webhook
 echo "Setting up Telegram webhook..."
 WORKER_URL="https://oneclickanalyzesbot.tamim-b-m-ali.workers.dev/webhook"
-curl "https://api.telegram.org/bot8347142212:AAGN_lTlBiT0PewaLoAJ23NG2b2Y2rWxNyI/setWebhook?url=$WORKER_URL"
+curl "https://api.telegram.org/bot8347142212:AAE0eB40ECYhH-ISYMnAsShdNbE5DZBiSBI/setWebhook?url=$WORKER_URL"
 
 echo ""
 echo "✅ Deployment complete!"

@@ -3,7 +3,7 @@
 # Quick Webhook Setup Script
 # Run this AFTER you've deployed the worker and set environment variables
 
-BOT_TOKEN="8347142212:AAGN_lTlBiT0PewaLoAJ23NG2b2Y2rWxNyI"
+BOT_TOKEN="8347142212:AAE0eB40ECYhH-ISYMnAsShdNbE5DZBiSBI"
 WORKER_URL="https://botdata.tamim-b-m-ali.workers.dev"
 
 echo "🔗 Setting up Telegram Webhook..."
