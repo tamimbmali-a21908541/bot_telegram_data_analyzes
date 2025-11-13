@@ -815,7 +815,7 @@ function generateHTMLReport(parseResult, analysis, filename) {
         ${sheet.pivots.length > 0 ? `
           <h3>📊 Data Visualizations</h3>
           ${sheet.pivots.slice(0, 3).map((pivot, pivotIdx) => {
-            const chartId = \`chart_\${sheetIdx}_\${pivotIdx}\`;
+            const chartId = 'chart_' + sheetIdx + '_' + pivotIdx;
             const labels = Object.keys(pivot.data);
             const avgData = labels.map(key => pivot.data[key].avg);
             const sumData = labels.map(key => pivot.data[key].sum);
